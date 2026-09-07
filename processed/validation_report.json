@@ -1,0 +1,44 @@
+{
+  "revision": "bca513e6ecd76a4051dfb80445ff0b0083c6be35",
+  "seed": 42,
+  "input_hashes": {
+    "train.csv": "11a690807059fc599b299c97779d9a06afce8a7fcd81b60eca689c61b37a3890",
+    "test.csv": "7304389d01c4f2fdbe4491d8fe6086f2beaa90727be2c85fad2ca11ec3d979b1"
+  },
+  "config": {
+    "short_len": 12,
+    "run_cleanlab": false,
+    "val_size": 0.2
+  },
+  "counts": {
+    "train_clean": 4000,
+    "val_clean": 1000,
+    "test_clean": 1000,
+    "test_primary": 1000,
+    "test_dedup": 1000,
+    "quarantine": 0,
+    "issues": 57
+  },
+  "N_test_raw": 1000,
+  "N_test_clean": 1000,
+  "test_row_delta_reasons": [],
+  "distributions": {
+    "train_clean": {
+      "positive": 2474,
+      "negative": 1526
+    },
+    "val_clean": {
+      "positive": 618,
+      "negative": 382
+    },
+    "test_clean": {
+      "positive": 553,
+      "negative": 447
+    }
+  },
+  "invariants": {
+    "train_val": 0,
+    "train_test": 0,
+    "val_test": 0
+  }
+}
