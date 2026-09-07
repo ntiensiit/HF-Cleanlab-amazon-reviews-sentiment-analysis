@@ -23,6 +23,10 @@ CLEANLAB_REMOVE_IDS = []
 SHORT_LEN = 12
 REPO = "Cleanlab/amazon-reviews"
 REVISION = "bca513e6ecd76a4051dfb80445ff0b0083c6be35"
+EXPECTED_SHA256 = {
+    "train.csv": "11a690807059fc599b299c97779d9a06afce8a7fcd81b60eca689c61b37a3890",
+    "test.csv": "7304389d01c4f2fdbe4491d8fe6086f2beaa90727be2c85fad2ca11ec3d979b1",
+}
 AUDIT_COLS = ["split_source", "source_row_id", "stage", "reason", "action"]
 DUP_COLS = ["review_text_clean", "label"]
 OUT = Path("processed")
@@ -39,6 +43,9 @@ except Exception:
         test_path = hf_hub_download(REPO, "test.csv", repo_type="dataset", revision=REVISION, local_files_only=True)
     except Exception:
         train_path, test_path = str(OUT / "train_raw.csv"), str(OUT / "test_raw.csv")
+        assert Path(train_path).is_file() and Path(test_path).is_file(), "offline fallback CSVs missing"
+        assert hashlib.sha256(Path(train_path).read_bytes()).hexdigest() == EXPECTED_SHA256["train.csv"], "train_raw.csv hash mismatch"
+        assert hashlib.sha256(Path(test_path).read_bytes()).hexdigest() == EXPECTED_SHA256["test.csv"], "test_raw.csv hash mismatch"
 train_raw = pd.read_csv(train_path)
 test_raw = pd.read_csv(test_path)
 n_test_raw = len(test_raw)
@@ -46,12 +53,15 @@ input_hashes = {
     "train.csv": hashlib.sha256(Path(train_path).read_bytes()).hexdigest(),
     "test.csv": hashlib.sha256(Path(test_path).read_bytes()).hexdigest(),
 }
+assert input_hashes == EXPECTED_SHA256, input_hashes
 
 # %% archive
 for src, name in ((train_path, "train_raw.csv"), (test_path, "test_raw.csv")):
     dst = (OUT / name).resolve()
     if Path(src).resolve() != dst:
         shutil.copyfile(src, dst)
+assert hashlib.sha256((OUT / "train_raw.csv").read_bytes()).hexdigest() == EXPECTED_SHA256["train.csv"]
+assert hashlib.sha256((OUT / "test_raw.csv").read_bytes()).hexdigest() == EXPECTED_SHA256["test.csv"]
 train_work = train_raw.copy()
 test_clean = test_raw.copy()
 
