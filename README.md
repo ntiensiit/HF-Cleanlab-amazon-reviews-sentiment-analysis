@@ -2,9 +2,9 @@
 
 Binary sentiment classification on [Cleanlab/amazon-reviews](https://huggingface.co/datasets/Cleanlab/amazon-reviews) (5k train / 1k test).
 
-Pipeline: ETL → optional Cleanlab label-issue detection → TF-IDF + LogisticRegression candidates on `train_dev` → validation selection → refit on `train_dev ∪ val` → test evaluation.
+Pipeline: ETL, optional Cleanlab label-issue detection, TF-IDF plus LogisticRegression candidates on `train_dev`, validation selection, refit on `train_dev` union `val`, then test evaluation.
 
-Cleanlab is detection-only unless you set `CLEANLAB_REMOVE_IDS` after inspecting suspected rows, then re-run from the Cleanlab cell (quarantine those IDs, update `train_dev`, rewrite audits, then retrain).
+Cleanlab is detection-only unless you set `CLEANLAB_REMOVE_IDS` in the setup cell to flagged `source_row_id` values, then restart the kernel and Run All. The Cleanlab cell resets `train_dev` from `train_clean` and drops prior `stage=cleanlab` audit rows so reruns stay idempotent.
 
 ```bash
 uv venv .venv
@@ -12,7 +12,7 @@ uv pip install -r requirements.txt
 python main.py
 ```
 
-Outputs in `processed/`: clean splits, `test_raw.csv` (byte copy of the download), `quarantine.csv`, `issues.csv`, `normalization_changes.csv`, `validation_report.json`, `metrics.json`, `model.joblib`, plots.
+Outputs in `processed/`: clean splits, `train_dev.csv`, `train_raw.csv` / `test_raw.csv` (byte copies when source differs), `quarantine.csv`, `issues.csv`, `normalization_changes.csv`, `validation_report.json`, `metrics.json`, `model.joblib`, plots.
 
 ## EDA
 

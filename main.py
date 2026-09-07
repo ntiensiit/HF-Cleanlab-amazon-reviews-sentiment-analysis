@@ -52,8 +52,10 @@ input_hashes = {
 }
 
 # %% archive
-shutil.copyfile(train_path, OUT / "train_raw.csv")
-shutil.copyfile(test_path, OUT / "test_raw.csv")
+for src, name in ((train_path, "train_raw.csv"), (test_path, "test_raw.csv")):
+    dst = (OUT / name).resolve()
+    if Path(src).resolve() != dst:
+        shutil.copyfile(src, dst)
 train_work = train_raw.copy()
 test_clean = test_raw.copy()
 
@@ -223,6 +225,10 @@ test_primary["y"] = test_primary["label"].map(enc)
 test_dedup["y"] = test_dedup["label"].map(enc)
 
 # %% optional cleanlab
+train_dev = train_clean.copy()
+train_dev["y"] = train_dev["label"].map(enc)
+quarantine[:] = [q for q in quarantine if q["stage"] != "cleanlab"]
+issues[:] = [i for i in issues if i["stage"] != "cleanlab"]
 if RUN_CLEANLAB:
     from cleanlab.filter import find_label_issues
     baseline = Pipeline([("tfidf", TfidfVectorizer(lowercase=True)), ("clf", LogisticRegression(max_iter=2000, random_state=SEED))])
@@ -231,7 +237,7 @@ if RUN_CLEANLAB:
     issue_mask = find_label_issues(labels=train_dev["y"].to_numpy(), pred_probs=pred_probs, n_jobs=1)
     suspected = train_dev.loc[issue_mask, ["source_row_id", "review_text_clean", "label"]]
     display(suspected)
-    print("set CLEANLAB_REMOVE_IDS then re-run from this cell to quarantine inspected rows")
+    print("edit CLEANLAB_REMOVE_IDS in setup, then restart kernel and Run All")
     suspected_ids = set(int(x) for x in train_dev.loc[issue_mask, "source_row_id"])
     requested = set(int(x) for x in CLEANLAB_REMOVE_IDS)
     unexpected = requested - suspected_ids
@@ -255,6 +261,7 @@ train_dev_dist = train_dev["label"].value_counts().to_dict()
 train_dev_hash = hashlib.sha256(
     train_dev[["source_row_id", "review_text_clean", "label"]].sort_values("source_row_id").to_csv(index=False).encode()
 ).hexdigest()
+train_dev[keep].to_csv(OUT / "train_dev.csv", index=False)
 
 # %% audit write
 pd.DataFrame(quarantine, columns=AUDIT_COLS).to_csv(OUT / "quarantine.csv", index=False)
