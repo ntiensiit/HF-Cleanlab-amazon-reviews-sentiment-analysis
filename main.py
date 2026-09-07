@@ -29,10 +29,20 @@ OUT.mkdir(exist_ok=True)
 quarantine, issues, norm_changes = [], [], []
 
 # %% load
-ds = dataset_info(REPO)
-REVISION = ds.sha
-train_path = hf_hub_download(REPO, "train.csv", repo_type="dataset")
-test_path = hf_hub_download(REPO, "test.csv", repo_type="dataset")
+try:
+    ds = dataset_info(REPO)
+    REVISION = ds.sha
+    train_path = hf_hub_download(REPO, "train.csv", repo_type="dataset")
+    test_path = hf_hub_download(REPO, "test.csv", repo_type="dataset")
+except Exception:
+    try:
+        train_path = hf_hub_download(REPO, "train.csv", repo_type="dataset", local_files_only=True)
+        test_path = hf_hub_download(REPO, "test.csv", repo_type="dataset", local_files_only=True)
+        REVISION = Path(train_path).parent.name
+    except Exception:
+        train_path, test_path = str(OUT / "train_raw.csv"), str(OUT / "test_raw.csv")
+        prev = json.loads((OUT / "validation_report.json").read_text(encoding="utf-8")) if (OUT / "validation_report.json").exists() else {}
+        REVISION = prev.get("revision", "local")
 train_raw = pd.read_csv(train_path)
 test_raw = pd.read_csv(test_path)
 n_test_raw = len(test_raw)
@@ -42,6 +52,7 @@ input_hashes = {
 }
 
 # %% archive
+shutil.copyfile(train_path, OUT / "train_raw.csv")
 shutil.copyfile(test_path, OUT / "test_raw.csv")
 train_work = train_raw.copy()
 test_clean = test_raw.copy()
@@ -221,7 +232,11 @@ if RUN_CLEANLAB:
     suspected = train_dev.loc[issue_mask, ["source_row_id", "review_text_clean", "label"]]
     display(suspected)
     print("set CLEANLAB_REMOVE_IDS then re-run from this cell to quarantine inspected rows")
-    remove = set(CLEANLAB_REMOVE_IDS)
+    suspected_ids = set(int(x) for x in train_dev.loc[issue_mask, "source_row_id"])
+    requested = set(int(x) for x in CLEANLAB_REMOVE_IDS)
+    unexpected = requested - suspected_ids
+    assert not unexpected, f"CLEANLAB_REMOVE_IDS not flagged: {sorted(unexpected)}"
+    remove = requested & suspected_ids
     for r in train_dev.loc[issue_mask, ["source_row_id"]].itertuples(index=False):
         rid = int(r.source_row_id)
         if rid in remove:
@@ -233,26 +248,17 @@ if RUN_CLEANLAB:
         print({"train_dev": len(train_dev), "label": train_dev["label"].value_counts().to_dict()})
         assert train_dev["y"].notna().all() and len(train_dev) > 0
 else:
+    assert not CLEANLAB_REMOVE_IDS, "CLEANLAB_REMOVE_IDS requires RUN_CLEANLAB=True"
     print("RUN_CLEANLAB=False; skip data-quality loop")
+
+train_dev_dist = train_dev["label"].value_counts().to_dict()
+train_dev_hash = hashlib.sha256(
+    train_dev[["source_row_id", "review_text_clean", "label"]].sort_values("source_row_id").to_csv(index=False).encode()
+).hexdigest()
 
 # %% audit write
 pd.DataFrame(quarantine, columns=AUDIT_COLS).to_csv(OUT / "quarantine.csv", index=False)
 pd.DataFrame(issues, columns=AUDIT_COLS).to_csv(OUT / "issues.csv", index=False)
-dist = {**dist_dev, "test_clean": test_clean["label"].value_counts().to_dict()}
-report = {
-    "revision": REVISION,
-    "seed": SEED,
-    "input_hashes": input_hashes,
-    "test_raw_archive_sha256": hashlib.sha256((OUT / "test_raw.csv").read_bytes()).hexdigest(),
-    "config": {"short_len": SHORT_LEN, "run_cleanlab": RUN_CLEANLAB, "cleanlab_remove_ids": CLEANLAB_REMOVE_IDS, "val_size": 0.2},
-    "counts": {"train_clean": len(train_clean), "train_dev": len(train_dev), "val_clean": len(val_clean), "test_clean": len(test_clean), "test_primary": len(test_primary), "test_dedup": len(test_dedup), "quarantine": len(quarantine), "issues": len(issues), "normalization_changes": len(norm_changes)},
-    "N_test_raw": n_test_raw,
-    "N_test_clean": len(test_clean),
-    "test_row_delta_reasons": [q for q in quarantine if q["split_source"] == "test"],
-    "distributions": dist,
-    "invariants": {"train_val": 0, "train_test": 0, "val_test": 0},
-}
-(OUT / "validation_report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
 
 # %% candidates
 candidates = {
@@ -318,3 +324,19 @@ fig, ax = plt.subplots(1, 2, figsize=(10, 3))
 test_eda["label"].value_counts().plot(kind="bar", ax=ax[0], title="test label counts", rot=0)
 test_eda["char_len"].plot(kind="hist", bins=30, ax=ax[1], title="test review length")
 plt.tight_layout(); fig.savefig(OUT / "eda_test.png", dpi=150, bbox_inches="tight"); plt.show()
+dist = {**dist_dev, "train_dev": train_dev_dist, "test_clean": test_clean["label"].value_counts().to_dict()}
+report = {
+    "revision": REVISION,
+    "seed": SEED,
+    "input_hashes": input_hashes,
+    "test_raw_archive_sha256": hashlib.sha256((OUT / "test_raw.csv").read_bytes()).hexdigest(),
+    "config": {"short_len": SHORT_LEN, "run_cleanlab": RUN_CLEANLAB, "cleanlab_remove_ids": CLEANLAB_REMOVE_IDS, "val_size": 0.2},
+    "counts": {"train_clean": len(train_clean), "train_dev": len(train_dev), "val_clean": len(val_clean), "test_clean": len(test_clean), "test_primary": len(test_primary), "test_dedup": len(test_dedup), "quarantine": len(quarantine), "issues": len(issues), "normalization_changes": len(norm_changes)},
+    "train_dev_hash": train_dev_hash,
+    "N_test_raw": n_test_raw,
+    "N_test_clean": len(test_clean),
+    "test_row_delta_reasons": [q for q in quarantine if q["split_source"] == "test"],
+    "distributions": dist,
+    "invariants": {"train_val": 0, "train_test": 0, "val_test": 0},
+}
+(OUT / "validation_report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")

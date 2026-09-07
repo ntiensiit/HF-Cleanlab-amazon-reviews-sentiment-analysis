@@ -23,6 +23,7 @@
     "issues": 431,
     "normalization_changes": 1729
   },
+  "train_dev_hash": "5144fbc921513d4f45a3ce64649c06afb180be55147b4e72ec85c5a127674800",
   "N_test_raw": 1000,
   "N_test_clean": 1000,
   "test_row_delta_reasons": [],
@@ -34,6 +35,10 @@
     "val_clean": {
       "positive": 618,
       "negative": 382
+    },
+    "train_dev": {
+      "positive": 2474,
+      "negative": 1526
     },
     "test_clean": {
       "positive": 553,
