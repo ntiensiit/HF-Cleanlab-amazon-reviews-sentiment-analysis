@@ -5,19 +5,23 @@
     "train.csv": "11a690807059fc599b299c97779d9a06afce8a7fcd81b60eca689c61b37a3890",
     "test.csv": "7304389d01c4f2fdbe4491d8fe6086f2beaa90727be2c85fad2ca11ec3d979b1"
   },
+  "test_raw_archive_sha256": "7304389d01c4f2fdbe4491d8fe6086f2beaa90727be2c85fad2ca11ec3d979b1",
   "config": {
     "short_len": 12,
-    "run_cleanlab": false,
+    "run_cleanlab": true,
+    "cleanlab_remove_ids": [],
     "val_size": 0.2
   },
   "counts": {
     "train_clean": 4000,
+    "train_dev": 4000,
     "val_clean": 1000,
     "test_clean": 1000,
     "test_primary": 1000,
     "test_dedup": 1000,
     "quarantine": 0,
-    "issues": 57
+    "issues": 431,
+    "normalization_changes": 1729
   },
   "N_test_raw": 1000,
   "N_test_clean": 1000,
