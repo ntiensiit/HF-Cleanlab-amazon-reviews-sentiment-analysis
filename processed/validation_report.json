@@ -5,6 +5,7 @@
     "train.csv": "11a690807059fc599b299c97779d9a06afce8a7fcd81b60eca689c61b37a3890",
     "test.csv": "7304389d01c4f2fdbe4491d8fe6086f2beaa90727be2c85fad2ca11ec3d979b1"
   },
+  "train_raw_archive_sha256": "11a690807059fc599b299c97779d9a06afce8a7fcd81b60eca689c61b37a3890",
   "test_raw_archive_sha256": "7304389d01c4f2fdbe4491d8fe6086f2beaa90727be2c85fad2ca11ec3d979b1",
   "config": {
     "short_len": 12,

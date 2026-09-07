@@ -340,6 +340,7 @@ report = {
     "revision": REVISION,
     "seed": SEED,
     "input_hashes": input_hashes,
+    "train_raw_archive_sha256": hashlib.sha256((OUT / "train_raw.csv").read_bytes()).hexdigest(),
     "test_raw_archive_sha256": hashlib.sha256((OUT / "test_raw.csv").read_bytes()).hexdigest(),
     "config": {"short_len": SHORT_LEN, "run_cleanlab": RUN_CLEANLAB, "cleanlab_remove_ids": CLEANLAB_REMOVE_IDS, "val_size": 0.2},
     "counts": {"train_clean": len(train_clean), "train_dev": len(train_dev), "val_clean": len(val_clean), "test_clean": len(test_clean), "test_primary": len(test_primary), "test_dedup": len(test_dedup), "quarantine": len(quarantine), "issues": len(issues), "normalization_changes": len(norm_changes)},
