@@ -9,7 +9,7 @@ pd.set_option("display.width", None)
 pd.set_option("display.expand_frame_repr", False)
 from IPython.display import display
 import matplotlib.pyplot as plt
-from huggingface_hub import dataset_info, hf_hub_download
+from huggingface_hub import hf_hub_download
 from sklearn.base import clone
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
@@ -22,6 +22,7 @@ RUN_CLEANLAB = True
 CLEANLAB_REMOVE_IDS = []
 SHORT_LEN = 12
 REPO = "Cleanlab/amazon-reviews"
+REVISION = "bca513e6ecd76a4051dfb80445ff0b0083c6be35"
 AUDIT_COLS = ["split_source", "source_row_id", "stage", "reason", "action"]
 DUP_COLS = ["review_text_clean", "label"]
 OUT = Path("processed")
@@ -30,19 +31,14 @@ quarantine, issues, norm_changes = [], [], []
 
 # %% load
 try:
-    ds = dataset_info(REPO)
-    REVISION = ds.sha
-    train_path = hf_hub_download(REPO, "train.csv", repo_type="dataset")
-    test_path = hf_hub_download(REPO, "test.csv", repo_type="dataset")
+    train_path = hf_hub_download(REPO, "train.csv", repo_type="dataset", revision=REVISION)
+    test_path = hf_hub_download(REPO, "test.csv", repo_type="dataset", revision=REVISION)
 except Exception:
     try:
-        train_path = hf_hub_download(REPO, "train.csv", repo_type="dataset", local_files_only=True)
-        test_path = hf_hub_download(REPO, "test.csv", repo_type="dataset", local_files_only=True)
-        REVISION = Path(train_path).parent.name
+        train_path = hf_hub_download(REPO, "train.csv", repo_type="dataset", revision=REVISION, local_files_only=True)
+        test_path = hf_hub_download(REPO, "test.csv", repo_type="dataset", revision=REVISION, local_files_only=True)
     except Exception:
         train_path, test_path = str(OUT / "train_raw.csv"), str(OUT / "test_raw.csv")
-        prev = json.loads((OUT / "validation_report.json").read_text(encoding="utf-8")) if (OUT / "validation_report.json").exists() else {}
-        REVISION = prev.get("revision", "local")
 train_raw = pd.read_csv(train_path)
 test_raw = pd.read_csv(test_path)
 n_test_raw = len(test_raw)
@@ -321,7 +317,15 @@ for i in range(2):
 ax[0].set_title("test confusion matrix")
 pd.DataFrame({"f1_macro": val_scores}).sort_values("f1_macro", ascending=True).plot(kind="barh", ax=ax[1], legend=False, title="validation f1")
 plt.tight_layout(); fig.savefig(OUT / "eda_results.png", dpi=150, bbox_inches="tight"); plt.show()
-(OUT / "metrics.json").write_text(json.dumps({"selected": best_name, "val_scores": val_scores, "metrics_primary": metrics_primary, "metrics_deduplicated": metrics_deduplicated}, indent=2), encoding="utf-8")
+(OUT / "metrics.json").write_text(json.dumps({
+    "revision": REVISION,
+    "train_dev_hash": train_dev_hash,
+    "selected": best_name,
+    "model_params": {"tfidf": selected.named_steps["tfidf"].get_params(), "clf": selected.named_steps["clf"].get_params()},
+    "val_scores": val_scores,
+    "metrics_primary": metrics_primary,
+    "metrics_deduplicated": metrics_deduplicated,
+}, indent=2, default=str), encoding="utf-8")
 
 # %% eda test
 test_eda = test_clean.assign(char_len=test_clean["review_text_clean"].str.len())

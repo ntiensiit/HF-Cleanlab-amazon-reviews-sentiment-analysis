@@ -2,7 +2,7 @@
 
 Binary sentiment classification on [Cleanlab/amazon-reviews](https://huggingface.co/datasets/Cleanlab/amazon-reviews) (5k train / 1k test).
 
-Pipeline: ETL, optional Cleanlab label-issue detection, TF-IDF plus LogisticRegression candidates on `train_dev`, validation selection, refit on `train_dev` union `val`, then test evaluation.
+Pipeline: ETL, optional Cleanlab label-issue detection, TF-IDF plus LogisticRegression candidates on `train_dev`, validation selection, refit on `train_dev` union `val`, then test evaluation. Downloads are pinned to Hugging Face revision `bca513e6ecd76a4051dfb80445ff0b0083c6be35`.
 
 Cleanlab is detection-only unless you set `CLEANLAB_REMOVE_IDS` in the setup cell to flagged `source_row_id` values, then restart the kernel and Run All. The Cleanlab cell resets `train_dev` from `train_clean` and drops prior `stage=cleanlab` audit rows so reruns stay idempotent.
 
