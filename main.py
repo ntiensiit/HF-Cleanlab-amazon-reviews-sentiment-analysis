@@ -19,7 +19,7 @@ from sklearn.pipeline import Pipeline
 
 SEED = 42
 RUN_CLEANLAB = True
-CLEANLAB_REMOVE_IDS = []
+CLEANLAB_REMOVE_IDS = [int(line) for line in Path("cleanlab_remove_ids.txt").read_text(encoding="utf-8").splitlines() if line.strip() and not line.startswith("#")]
 SHORT_LEN = 12
 REPO = "Cleanlab/amazon-reviews"
 REVISION = "bca513e6ecd76a4051dfb80445ff0b0083c6be35"
